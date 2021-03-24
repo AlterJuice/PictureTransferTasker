@@ -17,6 +17,7 @@ public class CircularParams{
 
     public static final int MAX_CIRCLE_DEGREES = 360;
     public static final double startAngle = - Math.PI/2f;
+    public static int circleCountPoints = 0;
 
     double centerX;
     double centerY;
@@ -39,12 +40,18 @@ public class CircularParams{
 
         this.angleFrom = angleFrom;
         this.angleTo = angleTo;
+        circleCountPoints++;
         Log.d("CircularParamsThis", this.toString());
 
     }
 
     public CircularParams(int zIndex, double[] centerXY, int[] angleFromTo){
         this(zIndex, centerXY[0], centerXY[1], angleFromTo[0], angleFromTo[1]);
+    }
+
+    public void updateCenterXY(double centerX, double centerY){
+        this.centerX = centerX;
+        this.centerY = centerY;
     }
 
 
@@ -64,7 +71,7 @@ public class CircularParams{
     }
 
     double getAnglesDifference(){ return calculateAnglesDifference(angleFrom, angleTo); }
-    double getZIndexOffset(){ return calculateOffset(getAnglesDifference(), circleMaxPoints, zIndex); }
+    double getZIndexOffset(){ return calculateOffset(getAnglesDifference(), circleCountPoints, zIndex); }
     double getEndpointAngle(){return calculateEndAngle(angleFrom, getZIndexOffset());
     }
     double getEndpointX(){ return calculateEndX(centerX, getEndpointAngle(), getTotalOffset(zIndex)); }

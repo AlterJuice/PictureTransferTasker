@@ -30,6 +30,15 @@ public abstract class BubbleLayout extends RelativeLayout {
 
     abstract View generateCenterBubbleView();
     abstract View generateChildBubbleView(int indexOfView, int backgroundResId, Positions position);
+    public void moveLayout(float deltaX, float deltaY){
+        centerView.setX(deltaX);
+        centerView.setY(deltaY);
+        for (int i = 0; i < children.size(); i++) {
+            View v = children.get(i);
+            v.setX(v.getX()+deltaX);
+            v.setY(v.getY()+deltaY);
+        }
+    }
 
     @Override
     public void addView(View child) {
@@ -37,6 +46,7 @@ public abstract class BubbleLayout extends RelativeLayout {
         children.add(child);
         onChangeNotify();
     }
+    
     public View createNewBubbleView(int backgroundResId){
         return generateChildBubbleView(children.size(), backgroundResId, getLayoutPosition());
     }
@@ -45,9 +55,7 @@ public abstract class BubbleLayout extends RelativeLayout {
         addView(createNewBubbleView(backgroundResId));
     }
 
-    Positions getLayoutPosition(){
-        return new Positions(Positions.posNone);
-    }
+
 
 /*
     public void newQ(){

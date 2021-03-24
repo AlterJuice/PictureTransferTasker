@@ -3,6 +3,7 @@ package com.juicy.picturetransfer;
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.IBinder;
@@ -14,6 +15,8 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+
+import static android.view.Gravity.CENTER_HORIZONTAL;
 
 
 public class FloatingButtonService extends Service {
@@ -38,6 +41,23 @@ public class FloatingButtonService extends Service {
     public void onChildBubbleClick(View view){
         // ((View) view.getParent()).performClick();
 
+    }
+
+    WindowManager.LayoutParams getWindowParams(int w, int h, int x, int y, int gravity){
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ?
+                        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY :
+                        WindowManager.LayoutParams.TYPE_PHONE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT);
+        layoutParams.width = w;
+        layoutParams.height = h;
+        layoutParams.x = x;
+        layoutParams.y = y;
+        layoutParams.gravity = gravity;
+        return layoutParams;
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -80,22 +100,8 @@ public class FloatingButtonService extends Service {
             }
         };
 
-
-        params = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ?
-                        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY :
-                        WindowManager.LayoutParams.TYPE_PHONE,
-
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT);
-
-        params.width = layoutSizePx;
-        params.height = layoutSizePx;
-        params.gravity = Gravity.TOP | Gravity.LEFT;
-        params.x = 500;
-        params.y = 500;
+        params = getWindowParams(layoutSizePx, layoutSizePx, 500, 500,
+                Gravity.TOP | Gravity.CENTER_HORIZONTAL);
 
         getMainView().setOnTouchListener(new View.OnTouchListener() {
             private int initialX;
@@ -128,12 +134,12 @@ public class FloatingButtonService extends Service {
                                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                                     PixelFormat.TRANSLUCENT);
 
-                            l.gravity = Gravity.TOP | Gravity.RIGHT;
-                            l.x = 100;
-                            l.y = 200;
+                            l.gravity = Gravity.TOP | Gravity.LEFT;
+                            l.x = 0;
+                            l.y = 100;
                             windowManager.addView(v1, l);
                             //bubbleLayout.createNewBubble(R.drawable.ic_baseline_help_24);
-                            // windowManager.updateViewLayout(bubbleLayout, params);
+                            windowManager.updateViewLayout(getMainView(), params);
                             Toast.makeText(getApplicationContext(), "Клик по тосту случился!", Toast.LENGTH_LONG).show();
 
                         }
@@ -143,6 +149,7 @@ public class FloatingButtonService extends Service {
                         //shouldClick = false;
                         params.x = initialX + (int) (event.getRawX() - initialTouchX);
                         params.y = initialY + (int) (event.getRawY() - initialTouchY);
+                        bubbleLayout.moveLayout((event.getRawX() - initialTouchX), (event.getRawY() - initialTouchY));
                         windowManager.updateViewLayout(getMainView(), params);
 
                         return true;

@@ -1,5 +1,6 @@
 package com.juicy.picturetransfer;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -7,6 +8,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.Button;
@@ -49,18 +51,35 @@ public class LaunchActivity extends AppCompatActivity {
         });
 
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == ACTION_MANAGE_OVERLAY_PERMISSION_REQUEST_CODE){
+            new Handler().postDelayed(() -> {
+                if (Settings.canDrawOverlays(this)) {
+                    runFloatingService();
+                }
+
+            },500);
+        }
+    }
+
     private void checkPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!Settings.canDrawOverlays(this)) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:" + getPackageName()));
-
                 startActivity(intent);
             }
             else{
-                startService(new Intent(getApplication(), FloatingButtonService.class));
+                runFloatingService();
             }
         }
+    }
+
+    private void runFloatingService(){
+        startService(new Intent(getApplication(), FloatingButtonService.class));
     }
 
     public void showToast(String text) {
