@@ -2,11 +2,13 @@ package com.juicy.picturetransfer;
 
 import android.annotation.SuppressLint;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -16,7 +18,10 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
+import java.util.Arrays;
+
 import static android.view.Gravity.CENTER_HORIZONTAL;
+import static android.view.Gravity.LEFT;
 
 
 public class FloatingButtonService extends Service {
@@ -25,23 +30,63 @@ public class FloatingButtonService extends Service {
     int childBubbleSizePx;
     BubbleLayout bubbleLayout;
     private WindowManager windowManager;
-    private WindowManager.LayoutParams params;
-
-    public View getMainView(){
-        return bubbleLayout;
-    }
+    private WindowManager.LayoutParams centerParams;
+    BubbleContainer bbs;
 
 
     public void onCenterClick(View view){
-        ((View) view.getParent()).performClick();
+        try {
+            ((View) view.getParent()).performClick();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+        double[] xy = bbs.getCenterXY();
+        Log.d("Calculating angles", Arrays.toString(CircularParams.calculateAllowedAngles(xy[0], xy[1], centerBubbleSizePx / 2)));
+
 
 
     }
 
-    public void onChildBubbleClick(View view){
+    public void onBubbleClick(View view){
+        bbs.createAddNewBubble(R.drawable.ic_baseline_help_24);
+        updateBubbles();
         // ((View) view.getParent()).performClick();
 
     }
+
+    View.OnTouchListener bubbleListener = new View.OnTouchListener() {
+            private float initialTouchX;
+            private float initialTouchY;
+
+            private int initialX;
+            private int initialY;
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                v.getRootView().onTouchEvent(event);
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        shouldClick = true;
+                        initialX = centerParams.x;
+                        initialY = centerParams.y;
+                        initialTouchX = event.getRawX();
+                        initialTouchY = event.getRawY();
+                        Log.d("XY", initialTouchX + " " + initialTouchY);
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        onCenterClick(v);
+                        return true;
+                    case MotionEvent.ACTION_MOVE:
+                        centerParams.x = initialX + (int) (event.getRawX() - initialTouchX);
+                        centerParams.y = initialY + (int) (event.getRawY() - initialTouchY);
+                        bbs.bubbles.get(0).updateLayout(centerParams);
+                        updateBubbles();
+                        return true;
+                }
+                return false;
+            }
+        };
 
     WindowManager.LayoutParams getWindowParams(int w, int h, int x, int y, int gravity){
         WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
@@ -71,6 +116,42 @@ public class FloatingButtonService extends Service {
         childBubbleSizePx = getPxFromDp(80);
         int layoutSizePx = getPxFromDp(300);
 
+        bbs = new BubbleContainer(this, centerBubbleSizePx, childBubbleSizePx) {
+            @Override
+            Bubble generateBubbleView(Context context, int viewIndex0IsCenter, int backgroundResId, Positions positions) {
+                int[] angleFromTo = positions.getDegreesFromTo();
+                CircularParams circularParams;
+                WindowManager.LayoutParams bubbleParams;
+
+                if (viewIndex0IsCenter == 0)
+                    circularParams = new CircularParams(viewIndex0IsCenter, new double[] {200, 200}, angleFromTo);
+                else
+                    circularParams = new CircularParams(viewIndex0IsCenter, getCenterXY(), angleFromTo);
+
+                if (viewIndex0IsCenter == 0) {
+                    centerParams = getWindowParams(centerBubbleSizePx, centerBubbleSizePx, 200, 200, Gravity.TOP | CENTER_HORIZONTAL);
+                    bubbleParams = centerParams;
+                }else
+                    bubbleParams = getWindowParams(childBubbleSizePx, childBubbleSizePx, (int) circularParams.getEndpointX(), (int) circularParams.getEndpointY(),0);
+
+                Bubble bubble = new Bubble(context, windowManager, bubbleParams, circularParams);
+                bubble.setId(View.generateViewId());
+                bubble.setBackgroundResource(backgroundResId);
+                bubble.setOnClickListener(FloatingButtonService.this::onBubbleClick);
+                if (viewIndex0IsCenter != 0)
+                    bubble.setBackgroundTintList(getColorStateList(R.color.black_trans));
+                bubble.setOnTouchListener(bubbleListener);
+                //windowManager.addView(bubble, bubbleParams);
+                bubbles.add(bubble);
+
+                // vParams.addRule(RelativeLayout.CENTER_IN_PARENT, 1);
+                return bubble;
+            }
+        };
+        bbs.createAddNewBubble(R.drawable.ic_baseline_help_24);
+        updateBubbles();
+
+
 
         bubbleLayout = new BubbleLayout(this, 1000, centerBubbleSizePx, childBubbleSizePx) {
             @Override
@@ -93,72 +174,13 @@ public class FloatingButtonService extends Service {
                 v.setBackgroundResource(backgroundResId);
                 v.setBackgroundTintList(getColorStateList(R.color.black_trans));
                 int[] angleFromTo = position.getDegreesFromTo();
-                v.setOnClickListener(FloatingButtonService.this::onChildBubbleClick);
+                v.setOnClickListener(FloatingButtonService.this::onBubbleClick);
                 CircularParams cParams = new CircularParams(indexOfView, getCenterXY(), angleFromTo);
                 setCircularParamsToView(v, cParams);
                 return v;
             }
         };
 
-        params = getWindowParams(layoutSizePx, layoutSizePx, 500, 500,
-                Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-
-        getMainView().setOnTouchListener(new View.OnTouchListener() {
-            private int initialX;
-            private int initialY;
-            private float initialTouchX;
-            private float initialTouchY;
-            private boolean shouldClick;
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                v.getRootView().onTouchEvent(event);
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        shouldClick = true;
-                        initialX = params.x;
-                        initialY = params.y;
-                        initialTouchX = event.getRawX();
-                        initialTouchY = event.getRawY();
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        if (shouldClick) {
-                            View v1 = bubbleLayout.createNewBubbleView(R.drawable.ic_baseline_help_24);
-                            WindowManager.LayoutParams l = new WindowManager.LayoutParams(
-                                    childBubbleSizePx,
-                                    childBubbleSizePx,
-                                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ?
-                                            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY :
-                                            WindowManager.LayoutParams.TYPE_PHONE,
-
-                                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                                    PixelFormat.TRANSLUCENT);
-
-                            l.gravity = Gravity.TOP | Gravity.LEFT;
-                            l.x = 0;
-                            l.y = 100;
-                            windowManager.addView(v1, l);
-                            //bubbleLayout.createNewBubble(R.drawable.ic_baseline_help_24);
-                            windowManager.updateViewLayout(getMainView(), params);
-                            Toast.makeText(getApplicationContext(), "Клик по тосту случился!", Toast.LENGTH_LONG).show();
-
-                        }
-                        shouldClick = false;
-                        return true;
-                    case MotionEvent.ACTION_MOVE:
-                        //shouldClick = false;
-                        params.x = initialX + (int) (event.getRawX() - initialTouchX);
-                        params.y = initialY + (int) (event.getRawY() - initialTouchY);
-                        bubbleLayout.moveLayout((event.getRawX() - initialTouchX), (event.getRawY() - initialTouchY));
-                        windowManager.updateViewLayout(getMainView(), params);
-
-                        return true;
-                }
-                return false;
-            }
-        });
-
-        windowManager.addView(getMainView(), params);
         CircularParams.setupOptions(
                 true,
                 //centerBubbleSizePx/2, childBubbleSizePx/2,
@@ -166,6 +188,21 @@ public class FloatingButtonService extends Service {
                 (int) Math.hypot(childBubbleSizePx/2, childBubbleSizePx/2),
                 getPxFromDp(10),
                 getPxFromDp(10));
+
+        int offset = 100;
+
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        int screenHeight = getResources().getDisplayMetrics().heightPixels;
+
+        CircularParams.setupMinMaxParams(offset, offset, screenHeight-offset, screenWidth-offset);
+    }
+
+    public void updateBubbles(){
+        // double[] centerXY = {centerParams.x, centerParams.y};
+        for (int i = 0; i < bbs.bubbles.size(); i++) {
+
+            bbs.bubbles.get(i).updateView(centerParams.x, centerParams.y);
+        }
     }
 
     @Nullable
@@ -177,8 +214,12 @@ public class FloatingButtonService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (getMainView() != null)
-            windowManager.removeView(getMainView());
+        for (int i = 0; i < bbs.bubbles.size(); i++) {
+            bbs.bubbles.get(i).removeFromWindow();
+            windowManager.removeView(bbs.bubbles.get(i));
+        }
+        bbs.bubbles.clear();
+        CircularParams.circleCountPoints = 0;
     }
 
 

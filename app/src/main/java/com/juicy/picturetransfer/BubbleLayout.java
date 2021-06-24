@@ -1,10 +1,7 @@
 package com.juicy.picturetransfer;
 
 import android.content.Context;
-import android.graphics.drawable.Drawable;
-import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 
 import java.util.ArrayList;
@@ -30,6 +27,7 @@ public abstract class BubbleLayout extends RelativeLayout {
 
     abstract View generateCenterBubbleView();
     abstract View generateChildBubbleView(int indexOfView, int backgroundResId, Positions position);
+
     public void moveLayout(float deltaX, float deltaY){
         centerView.setX(deltaX);
         centerView.setY(deltaY);
@@ -48,7 +46,7 @@ public abstract class BubbleLayout extends RelativeLayout {
     }
     
     public View createNewBubbleView(int backgroundResId){
-        return generateChildBubbleView(children.size(), backgroundResId, getLayoutPosition());
+        return generateChildBubbleView(children.size(), backgroundResId, new Positions());
     }
 
     public void createNewBubble(int backgroundResId){
@@ -56,36 +54,10 @@ public abstract class BubbleLayout extends RelativeLayout {
     }
 
 
-
-/*
-    public void newQ(){
-        int centerX = getWidth()/2;
-        int centerY= getHeight()/2;
-        generateCenterBubbleView();
-        // canvas.drawCircle(centerX,centerY,radius_main,mainPaint);
-        for(int i = 0; i < children.size(); i++){
-            double angle = 0;
-            if(i==0){
-                angle = startAngle;
-            }else{
-                angle = startAngle+(i * ((2 * Math.PI) / children.size()));
-            }
-
-            children.get(i).setX((float) (centerX + Math.cos(angle)*(radius_main+menuInnerPadding+radialCircleRadius)));
-            children.get(i).setY((float) (centerY + Math.sin(angle)*(radius_main+menuInnerPadding+radialCircleRadius)));
-
-            // canvas.drawCircle( elements.get(i).x,elements.get(i).y,radialCircleRadius,secondPaint);
-            //float tW = textPaint.measureText(elements.get(i).text);
-            //
-            //canvas.drawText(elements.get(i).text,elements.get(i).x-tW/2,elements.get(i).y+radialCircleRadius+textPadding,textPaint);
-        }
-
-    }*/
-
     public void onChangeNotify(){
         CircularParams.setCircleMaxPoints(children.size());
         double[] centerXY = getCenterXY();
-        int[] degreesFromTo = getLayoutPosition().getDegreesFromTo();
+        int[] degreesFromTo = new Positions().getDegreesFromTo();
         for (int i = 0; i < children.size(); i++) {
             CircularParams cParams = new CircularParams(i, centerXY, degreesFromTo);
             setCircularParamsToView(children.get(i), cParams);

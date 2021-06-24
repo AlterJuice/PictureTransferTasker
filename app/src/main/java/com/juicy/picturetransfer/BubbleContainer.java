@@ -1,5 +1,6 @@
 package com.juicy.picturetransfer;
 
+import android.content.Context;
 import android.view.View;
 
 import java.util.ArrayList;
@@ -8,33 +9,37 @@ public abstract class BubbleContainer {
     public ArrayList<Bubble> bubbles;
     int centerBubblePx;
     int childBubblePx;
-    View centerView;
     // BUBBLE INDEXED WITH 0 IS MAIN BUBBLE
+    Context mContext;
+    double centerOffsetRadius;
 
-    abstract Bubble generateCenterBubbleView();
-    abstract Bubble generateChildBubbleView(int indexOfView, int backgroundResId, Positions position);
+    BubbleContainer(Context context, int centerBubblePx, int childBubblePx){
+        mContext = context;
+        bubbles = new ArrayList<>();
+        this.centerBubblePx = centerBubblePx;
+        this.childBubblePx = childBubblePx;
+        centerOffsetRadius = (Math.hypot(centerBubblePx, centerBubblePx)/8);
 
-    public Bubble createNewBubbleView(int backgroundResId){
-        return generateChildBubbleView(bubbles.size(), backgroundResId, new Positions());
     }
 
-    public void createNewBubble(int backgroundResId){
-        bubbles.add(createNewBubbleView(backgroundResId));
+    abstract Bubble generateBubbleView(Context context, int indexOfView, int backgroundResId, Positions positions);
+
+    public Bubble createGetNewBubbleView(int backgroundResId){
+        return generateBubbleView(mContext, bubbles.size(), backgroundResId, new Positions());
     }
 
-    public void updateBubbles(){
-        double[] centerXY = getCenterXY();
-        for (int i = 0; i < bubbles.size(); i++) {
-            bubbles.get(i).updateView(centerXY);
 
-        }
+    public void createAddNewBubble(int backgroundResId){
+        Bubble bubble = createGetNewBubbleView(backgroundResId);
+        bubble.addToWindow();
+        bubbles.add(bubble);
     }
+
 
     public double[] getCenterXY() {
-        return new double[]{
-                // (double) getWidth()/2, (double) getHeight()/2
-                centerView.getX() + Math.hypot(centerBubblePx, centerBubblePx)/8 ,
-                centerView.getY() + Math.hypot(centerBubblePx, centerBubblePx)/8
-        };
+        double[] xy = {bubbles.get(0).layoutParams.x, bubbles.get(0).layoutParams.y};
+        return xy;
+        // bubbles.get(0).getLocationOnScreen(xy);
+        // return new double[]{xy[0] + centerOffsetRadius, xy[1] + centerOffsetRadius};
     }
 }

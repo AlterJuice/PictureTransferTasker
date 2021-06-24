@@ -18,6 +18,8 @@ public class Positions {
 
     public Positions(){ position = posNone; }
     public Positions(byte position){ this.position = position; }
+    public void add(byte position){ this.position |= position; }
+    public boolean hasFlag(byte position){ return Flags.isFlagSet(position, this.position) ;}
     public int[] getDegreesFromTo(){ return getAllowedDegreesFromTo(position); }
 
     static int[] getAllowedDegreesFromTo(byte positions){
